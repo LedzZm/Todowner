@@ -11,6 +11,8 @@ import (
 
 // @todo find a better way to represent characters checked for the code to be more readable.
 // @make usable anywhere.
+// When writing, use *_converted.md for testing environment.
+
 func main() {
 	// @todo add comment when I have decided what this will be.
 	const (
