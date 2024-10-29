@@ -54,16 +54,37 @@ func main() {
 
 				// @todo Abstract?
 				previousLine = heading
+
+				fmt.Println(lineContents)
 				continue
 			}
 
 			if previousLine == heading {
-				if slices.Contains([]string{"  ", "	"}, lineContents) {
+
+				if lineContents == "" {
+					// @todo decide if I should remove empty lines from file,
+					// @todo or handle them some other way
+					continue
+				}
+
+				if strings.HasPrefix(lineContents, "  ") || strings.HasPrefix(lineContents, "	") {
 					fmt.Println(lineContents)
-					os.Exit(0)
+
+					// Strip the first indentation.
+					// @todo need to decide what to do here.
+					lineContents, result := strings.CutPrefix(lineContents, "  ")
+					if !result {
+						lineContents, result = strings.CutPrefix(lineContents, "	")
+					}
+
+					os.Exit(10)
 				} else {
 					// @todo add - in the beginning
 					// @todo do not do this in else body.
+
+					contains := slices.Contains([]string{"  ", "	"}, lineContents)
+					fmt.Println(contains, lineContents)
+					os.Exit(1)
 					continue
 				}
 
