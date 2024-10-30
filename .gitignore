@@ -27,3 +27,5 @@ go.work.sum
 # Sample todo files.
 testfile.todo
 testfile.todo.bak
+# Sample md files.
+testfile.md
