@@ -2,25 +2,15 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
-	"slices"
+	"path/filepath"
 	"strings"
 )
 
-// @todo find a better way to represent characters checked for the code to be more readable.
-// @make usable anywhere.
-// When writing, use *_converted.md for testing environment.
-
+// @TODO: find a better way to represent characters checked for the code to be more readable.
+// @TODO: make usable in any directory, regardles of script position.
 func main() {
-	// @todo add comment when I have decided what this will be.
-	const (
-		heading   = 0 // seek relative to the origin of the file
-		korompos  = 1 // seek relative to the current offset
-		endrompos = 2 // seek relative to the end
-	)
-
 	files, _ := os.ReadDir(".")
 
 	for _, file := range files {
@@ -28,14 +18,22 @@ func main() {
 			continue
 		}
 
-		stream, _ := os.OpenFile(file.Name(), os.O_RDWR, 0755)
-
-		reader := bufio.NewReader(stream)
-		writer := bufio.NewWriter(stream)
-		editor := bufio.NewReadWriter(reader, writer)
+		// @TODO: Do I need error handling here?
+		// Initialize the file editor.
+		sourceFile, _ := os.Open(file.Name())
+		defer sourceFile.Close()
+		markdownFileName := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name())) + ".md"
+		// @TODO: TBD, should I use "" for the default tmp dir of the system when binary?
+		tempFile, _ := os.CreateTemp(".", markdownFileName)
+		// @TODO: is this even needed?
+		// @TODO: Maybe with concurrency
+		defer tempFile.Close()
+		editor := bufio.NewReadWriter(
+			bufio.NewReader(sourceFile),
+			bufio.NewWriter(tempFile),
+		)
 
 		lineNumber := 1
-		var previousLine byte
 		for {
 			_line, _, err := editor.ReadLine()
 
@@ -52,62 +50,49 @@ func main() {
 				// @todo somehow find subheadings
 				lineContents = "# " + lineContents
 
-				// @todo Abstract?
-				previousLine = heading
-
-				fmt.Println(lineContents)
+				editor.WriteString(lineContents + "\n")
+				editor.Flush()
 				continue
 			}
 
-			if previousLine == heading {
-
-				if lineContents == "" {
-					// @todo decide if I should remove empty lines from file,
-					// @todo or handle them some other way
-					continue
-				}
-
-				if strings.HasPrefix(lineContents, "  ") || strings.HasPrefix(lineContents, "	") {
-					fmt.Println(lineContents)
-
-					// Strip the first indentation.
-					// @todo need to decide what to do here.
-					lineContents, result := strings.CutPrefix(lineContents, "  ")
-					if !result {
-						lineContents, result = strings.CutPrefix(lineContents, "	")
-					}
-
-					os.Exit(10)
-				} else {
-					// @todo add - in the beginning
-					// @todo do not do this in else body.
-
-					contains := slices.Contains([]string{"  ", "	"}, lineContents)
-					fmt.Println(contains, lineContents)
-					os.Exit(1)
-					continue
-				}
-
-			}
-
-			os.Exit(0)
-			if string(lineContents[0]) != "\t" {
+			if lineContents == "" {
+				// @todo decide if I should remove empty lines from file,
+				// @todo or handle them some other way
 				continue
 			}
 
-			fmt.Println(string(lineContents[0]))
+			fixIndentation(&lineContents)
 
-			os.Exit(1)
+			// @TODO: Is this the best place to do it here, or for every line.
+			// @TODO: Reconsider `Is this the best place to do it here, or for every line.`
+			//     When processing the files concurrently
+			editor.WriteString(lineContents + "\n")
+			editor.Flush()
 
 			// result := strings.ReplaceAll(lineContents, "☐", "- [ ]")
 
 			// strings.Split(result, "")
 			// fmt.Println(result)
 			lineNumber++
-
-			os.Exit(2)
 		}
 
+		// @TODO: Can I do this with one operation? Not needed just flex.
+		os.Rename(tempFile.Name(), markdownFileName)
+		os.Remove(file.Name())
 	}
+}
 
+// @todo remove abstraction if not needed
+func fixIndentation(lineContents *string) {
+	_lineContents := *lineContents
+	if strings.HasPrefix(_lineContents, "  ") || strings.HasPrefix(_lineContents, "	") {
+		// Strip the first indentation.
+		// @todo need to decide what to do here.
+		_lineContents, result := strings.CutPrefix(_lineContents, "  ")
+		if !result {
+			_lineContents, result = strings.CutPrefix(_lineContents, "	")
+		}
+
+		*lineContents = _lineContents
+	}
 }
