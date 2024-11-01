@@ -6,10 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
-// @TODO: find a better way to represent characters checked for the code to be more readable.
-// @TODO: make usable in any directory, regardles of script position.
+// @TODO: Find a better way to represent characters checked for the code to be more readable.
+// @TODO: Make usable in any directory, regardles of script position.
+// @TODO: Fix comments (Document properly and correct comment formatting).
 func main() {
 	files, _ := os.ReadDir(".")
 
@@ -43,12 +46,19 @@ func main() {
 			}
 
 			lineContents := string(_line[:])
+			prefix, hasIndentation := resolveIndentation(lineContents)
+
+			var depth int = 0
+			if hasIndentation {
+				// TODO: depth%2 might be off if " " is the indentation character
+				depth = findIndentationDepth(lineContents, prefix)
+				koromposIndentations(&lineContents)
+			}
 
 			// Convert todo sections to markdown Headings.
-			if strings.HasSuffix(lineContents, ":") {
-				lineContents, _ = strings.CutSuffix(lineContents, ":")
-				// @todo somehow find subheadings
-				lineContents = "# " + lineContents
+			lineContents, isHeading := strings.CutSuffix(lineContents, ":")
+			if isHeading {
+				lineContents = strings.Repeat("#", depth+1) + " " + lineContents
 
 				editor.WriteString(lineContents + "\n")
 				editor.Flush()
@@ -60,8 +70,6 @@ func main() {
 				// @todo or handle them some other way
 				continue
 			}
-
-			fixIndentation(&lineContents)
 
 			// @TODO: Is this the best place to do it here, or for every line.
 			// @TODO: Reconsider `Is this the best place to do it here, or for every line.`
@@ -78,21 +86,59 @@ func main() {
 
 		// @TODO: Can I do this with one operation? Not needed just flex.
 		os.Rename(tempFile.Name(), markdownFileName)
-		os.Remove(file.Name())
+		// os.Remove(file.Name())
 	}
 }
 
 // @todo remove abstraction if not needed
-func fixIndentation(lineContents *string) {
+func koromposIndentations(lineContents *string) {
 	_lineContents := *lineContents
-	if strings.HasPrefix(_lineContents, "  ") || strings.HasPrefix(_lineContents, "	") {
-		// Strip the first indentation.
-		// @todo need to decide what to do here.
-		_lineContents, result := strings.CutPrefix(_lineContents, "  ")
-		if !result {
-			_lineContents, result = strings.CutPrefix(_lineContents, "	")
+	prefix, hasIndentation := resolveIndentation(_lineContents)
+
+	if hasIndentation {
+		*lineContents = strings.TrimPrefix(_lineContents, string(prefix))
+	}
+}
+
+func findIndentationDepth(haystack string, target string) int {
+
+	count := 0
+	for _, char := range haystack {
+		// Stop counting once the target character stops appearing.
+		if string(char) != target {
+			return count
+		}
+		count++
+	}
+
+	// https://www.practical-go-lessons.com/chap-34-benchmarks
+	// TODO: len(haystack)-len(strings.TrimLeft(haystack, " "))
+	return count
+}
+
+// @TODO: Need something more generic for the runes?
+func resolveIndentation(line string) (string, bool) {
+	firstRune, _ := utf8.DecodeRuneInString(line)
+	prefix := string(firstRune)
+	if firstRune == ' ' {
+
+		c := findIndentationDepth(line, " ")
+
+		if c%2 != 0 {
+			// println(c, c2)
 		}
 
-		*lineContents = _lineContents
+		// println(findIndentationDepth(line, " "))
+
+		prefix = "  "
 	}
+
+	unicode.IsSpace(firstRune)
+
+	// if prefix == " " {
+	// 	depth := findIndentationDepth(line, prefix)
+	// 	return "  ", true
+	// }
+
+	return prefix, string(prefix) == "  " || prefix == "	"
 }
