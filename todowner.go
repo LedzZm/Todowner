@@ -6,15 +6,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 
 // @TODO: Find a better way to represent characters checked for the code to be more readable.
 // @TODO: Make usable in any directory, regardles of script position.
 // @TODO: Fix comments (Document properly and correct comment formatting).
+// @TODO: Try moving indentation handling to another packate @optional.
 func main() {
 	files, _ := os.ReadDir(".")
+
+	println("Decide what to do with double spaces.\nDecide if I want to remove abstractions. \nPass the indentation and prefix to koromposIndentations (Decide if I want to pass double space as string or as rune to handle)")
+	os.Exit(5)
 
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), ".todo") {
@@ -45,7 +48,8 @@ func main() {
 				break
 			}
 
-			lineContents := string(_line[:])
+			// Read the line and strip suffixing spaces.
+			lineContents := strings.TrimRight(string(_line[:]), " ")
 			prefix, hasIndentation := resolveIndentation(lineContents)
 
 			var depth int = 0
@@ -54,6 +58,8 @@ func main() {
 				depth = findIndentationDepth(lineContents, prefix)
 				koromposIndentations(&lineContents)
 			}
+
+			println("depth", depth)
 
 			// Convert todo sections to markdown Headings.
 			lineContents, isHeading := strings.CutSuffix(lineContents, ":")
@@ -100,45 +106,20 @@ func koromposIndentations(lineContents *string) {
 	}
 }
 
+// TODO: When finished with usages, evaluate if needs some type so stcache
 func findIndentationDepth(haystack string, target string) int {
+	count := len(haystack) - len(strings.TrimLeft(haystack, " "))
 
-	count := 0
-	for _, char := range haystack {
-		// Stop counting once the target character stops appearing.
-		if string(char) != target {
-			return count
-		}
-		count++
+	if target == " " {
+		count /= 2
 	}
 
-	// https://www.practical-go-lessons.com/chap-34-benchmarks
-	// TODO: len(haystack)-len(strings.TrimLeft(haystack, " "))
 	return count
 }
 
 // @TODO: Need something more generic for the runes?
+// @TODO: Remove this abstraction?
 func resolveIndentation(line string) (string, bool) {
-	firstRune, _ := utf8.DecodeRuneInString(line)
-	prefix := string(firstRune)
-	if firstRune == ' ' {
-
-		c := findIndentationDepth(line, " ")
-
-		if c%2 != 0 {
-			// println(c, c2)
-		}
-
-		// println(findIndentationDepth(line, " "))
-
-		prefix = "  "
-	}
-
-	unicode.IsSpace(firstRune)
-
-	// if prefix == " " {
-	// 	depth := findIndentationDepth(line, prefix)
-	// 	return "  ", true
-	// }
-
-	return prefix, string(prefix) == "  " || prefix == "	"
+	prefix, _ := utf8.DecodeRuneInString(line)
+	return string(prefix), prefix == ' ' || prefix == '	'
 }
