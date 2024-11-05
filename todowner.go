@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -25,7 +26,8 @@ func NewLine(content string) *Line {
 
 	if unicode.IsSpace(Line.indentationRune) {
 		Line.indentationDepth = len(Line.content) - len(strings.TrimLeft(Line.content, " "))
-
+		// For non tab space characters, we consider half the depth,
+		// since two of those characters should be used per indent.
 		if Line.indentationRune != '\t' {
 			Line.indentationDepth /= 2
 		}
@@ -39,19 +41,40 @@ func NewLine(content string) *Line {
 }
 
 func main() {
-	files, _ := os.ReadDir(".")
-
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".todo") {
-			continue
+	// Find the .todo files in a given folder, recursively.
+	var filePathsToProcess []string
+	filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
+		// Skip hidden directories.
+		if info.IsDir() && strings.HasPrefix(info.Name(), ".") && info.Name() != "." {
+			return filepath.SkipDir
+		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".todo") {
+			filePathsToProcess = append(filePathsToProcess, path)
+		}
+		return nil
+	})
+
+	// Create the backup folder.
+	backupDir := "./todowner_backup/"
+	if err := os.Mkdir(backupDir, 0777); err != nil {
+		// TODO: handle error better than this (?)
+		fmt.Println(err.Error())
+	}
+
+	for _, filePath := range filePathsToProcess {
 		// Initialize the file editor.
-		sourceFile, _ := os.Open(file.Name())
+		sourceFile, _ := os.Open(filePath)
 		defer sourceFile.Close()
-		markdownFileName := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name())) + ".md"
-		// @TODO: TBD, should I use "" for the default tmp dir of the system when binary?
-		tempFile, _ := os.CreateTemp(".", markdownFileName)
+
+		tempFile, _ := os.CreateTemp(
+			fmt.Sprint("./", filepath.Dir(sourceFile.Name())),
+			filepath.Base(sourceFile.Name()),
+		)
 		defer tempFile.Close()
+
 		editor := bufio.NewReadWriter(
 			bufio.NewReader(sourceFile),
 			bufio.NewWriter(tempFile),
@@ -62,7 +85,7 @@ func main() {
 			_line, _, err := editor.ReadLine()
 
 			if err != nil && err == io.EOF {
-				println("Finished parsing " + file.Name())
+				fmt.Println("Finished parsing " + sourceFile.Name())
 				break
 			}
 
@@ -93,11 +116,17 @@ func main() {
 			// Convert the todo boxes to markdown checkboxes.
 			Line.content = strings.ReplaceAll(Line.content, "☐", "- [ ]")
 
+			if !isHeading && Line.indentationDepth <= 0 && !strings.HasPrefix(Line.content, "-") {
+				Line.content = Line.content + "⚠️"
+			}
+
 			writeLine(*editor, Line.content)
 		}
 
-		os.Rename(tempFile.Name(), markdownFileName)
-		os.Remove(file.Name())
+		// markdownFileName := strings.TrimSuffix(sourceFile.Name(), filepath.Ext(sourceFile.Name())) + ".md"
+
+		// os.Rename(tempFile.Name(), markdownFileName)
+		// os.MkdirAll(backupDir+sourceFile.Name(), 0777)
 	}
 }
 
