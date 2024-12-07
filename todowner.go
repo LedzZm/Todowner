@@ -40,6 +40,9 @@ func NewLine(content string) *Line {
 	return Line
 }
 
+// @TODO: Prompt user for file or directory.
+// @TODO: If passed file directly do not walk directory
+// @TODO: Recursive should be optional (?)
 func main() {
 	// Find the .todo files in a given folder, recursively.
 	var filePathsToProcess []string
@@ -69,9 +72,17 @@ func main() {
 		sourceFile, _ := os.Open(filePath)
 		defer sourceFile.Close()
 
+		// Create the full nested filepath inside the backup folder.
+		os.MkdirAll(backupDir+filepath.Dir(filePath), 0770)
+		// Copy the sourceFile contents to the backu file.
+		// backupFile, _ := os.Open(backupDir + filePath)
+		backupFile, _ := os.Create(backupDir + filePath)
+		io.Copy(backupFile, sourceFile)
+		backupFile.Close()
+
 		tempFile, _ := os.CreateTemp(
-			fmt.Sprint("./", filepath.Dir(sourceFile.Name())),
-			filepath.Base(sourceFile.Name()),
+			fmt.Sprint("./", filepath.Dir(filePath)),
+			filepath.Base(filePath),
 		)
 		defer tempFile.Close()
 
@@ -85,7 +96,7 @@ func main() {
 			_line, _, err := editor.ReadLine()
 
 			if err != nil && err == io.EOF {
-				fmt.Println("Finished parsing " + sourceFile.Name())
+				fmt.Println("Finished parsing " + filePath)
 				break
 			}
 
@@ -122,11 +133,11 @@ func main() {
 
 			writeLine(*editor, Line.content)
 		}
+		// Create the new markdown file.
+		markdownFileName := strings.TrimSuffix(filePath, filepath.Ext(filePath)) + ".md"
+		os.Rename(tempFile.Name(), markdownFileName)
 
-		// markdownFileName := strings.TrimSuffix(sourceFile.Name(), filepath.Ext(sourceFile.Name())) + ".md"
-
-		// os.Rename(tempFile.Name(), markdownFileName)
-		// os.MkdirAll(backupDir+sourceFile.Name(), 0777)
+		// @TODO: Message about backup
 	}
 }
 
