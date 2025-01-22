@@ -79,6 +79,8 @@ func main() {
 		backupFile, _ := os.Create(backupDir + filePath)
 		io.Copy(backupFile, sourceFile)
 		backupFile.Close()
+		// Reset the sourceFile pointer to the start of the file.
+		sourceFile.Seek(0, 0)
 
 		tempFile, _ := os.CreateTemp(
 			fmt.Sprint("./", filepath.Dir(filePath)),
