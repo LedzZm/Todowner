@@ -42,7 +42,8 @@ func NewLine(content string) *Line {
 
 // @TODO: Prompt user for file or directory.
 // @TODO: If passed file directly do not walk directory
-// @TODO: Recursive should be optional (?)
+// @TODO: Add progressbar
+// @TODO: Recursive should be optional (?) -r
 func main() {
 	// Find the .todo files in a given folder, recursively.
 	var filePathsToProcess []string
@@ -65,6 +66,8 @@ func main() {
 	if err := os.Mkdir(backupDir, 0777); err != nil {
 		// TODO: handle error better than this (?)
 		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("Backup created at: %s\n", backupDir)
 	}
 
 	for _, filePath := range filePathsToProcess {
@@ -138,8 +141,6 @@ func main() {
 		// Create the new markdown file.
 		markdownFileName := strings.TrimSuffix(filePath, filepath.Ext(filePath)) + ".md"
 		os.Rename(tempFile.Name(), markdownFileName)
-
-		// @TODO: Message about backup
 	}
 }
 
