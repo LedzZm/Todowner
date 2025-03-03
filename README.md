@@ -33,3 +33,5 @@ The main function performs the following tasks:
         - Headings end with ':'.
         - Content starts one indentation level after the heading.
         - In markdown, this is not needed, so we also remove one more indentation level in non-heading lines.
+
+4. **Delete the original file.**

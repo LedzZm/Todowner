@@ -109,6 +109,7 @@ func main() {
 		// Create the new markdown file.
 		markdownFileName := strings.TrimSuffix(filePath, filepath.Ext(filePath)) + ".md"
 		os.Rename(tempFile.Name(), markdownFileName)
+		os.Remove(filePath)
 	}
 }
 
