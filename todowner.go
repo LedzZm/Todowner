@@ -69,7 +69,7 @@ func main() {
 				continue
 			}
 
-			if line.Content == "＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿" {
+			if strings.HasPrefix(line.Content, "---") {
 				line.Content = "--"
 				continue
 			}
