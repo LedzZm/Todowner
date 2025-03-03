@@ -11,21 +11,9 @@ import (
 	utils "todowner/src"
 )
 
+// TODO: Try out concurrency... keep current code state binary for benchmarking.
+// TODO: Start processing different files to find edge cases.
 func main() {
-	var filePathsToProcess []string
-	filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		// Skip hidden directories.
-		if info.IsDir() && strings.HasPrefix(info.Name(), ".") && info.Name() != "." {
-			return filepath.SkipDir
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".todo") {
-			filePathsToProcess = append(filePathsToProcess, path)
-		}
-		return nil
-	})
 
 	backupDir := "./todowner_backup/"
 	if err := os.Mkdir(backupDir, 0777); err != nil {
@@ -34,7 +22,7 @@ func main() {
 		fmt.Printf("Backup created at: %s\n", backupDir)
 	}
 
-	for _, filePath := range filePathsToProcess {
+	for _, filePath := range utils.DiscoverFiles() {
 		sourceFile, _ := os.Open(filePath)
 		defer sourceFile.Close()
 

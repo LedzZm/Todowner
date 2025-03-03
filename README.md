@@ -12,6 +12,10 @@ Todowner is a tool that processes `.todo` files in a given folder recursively, c
 
 ## Usage
 
+`todowner -f=filepath` For a single file
+
+`todowner` Executing the script without arguments, will iterate the current folder recursively and discover all '.todo' files.
+
 ### Main Function
 
 The main function performs the following tasks:
