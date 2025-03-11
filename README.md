@@ -10,6 +10,10 @@ Todowner is a tool that processes `.todo` files in a given folder recursively, c
 - Create a backup of the `.todo` files.
 - Convert `.todo` files to markdown format.
 
+## Installation
+- `go build`
+- `sudo mv todowner /usr/local/bin/todowner`
+
 ## Usage
 
 `todowner -f=filepath` For a single file
