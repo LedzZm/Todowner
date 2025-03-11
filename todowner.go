@@ -59,6 +59,7 @@ func main() {
 
 			if strings.HasPrefix(line.Content, "---") {
 				line.Content = "--"
+				writeLine(*editor, line.Content)
 				continue
 			}
 
